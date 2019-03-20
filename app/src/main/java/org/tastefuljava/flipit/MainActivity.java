@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter bluetoothAdapter;
     private Handler handler = new Handler();
     private ListView deviceListView;
-    private ArrayAdapter<DeviceRef> deviceListAdapter;
+    private DeviceListAdapter deviceListAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,9 +58,9 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {connect(view);    }
         });
         deviceListView = findViewById(R.id.deviceListView);
-//        deviceListAdapter = new ArrayAdapter<DeviceRef>(this, R.layout.device_item);
-//        deviceListView.setAdapter(deviceListAdapter);
-//        deviceListAdapter.add(new DeviceRef("TimeFlip", "00:00:00:00:00:00"));
+        deviceListAdapter = new DeviceListAdapter(this);
+        deviceListView.setAdapter(deviceListAdapter);
+        deviceListAdapter.add(new DeviceRef("TimeFlip", "00:00:00:00:00:00"));
     }
 
     @Override
@@ -87,7 +87,8 @@ public class MainActivity extends AppCompatActivity {
     private final ScanCallback leScanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
-            Log.i(TAG,"Device Name: " + result.getDevice().getName() + " address: " + result.getDevice().getAddress() + " rssi: " + result.getRssi());
+            deviceListAdapter.add(new DeviceRef(result.getDevice().getName(),
+                    result.getDevice().getAddress()));
         }
     };
 
@@ -169,9 +170,10 @@ public class MainActivity extends AppCompatActivity {
 
             public void run() {
                 Log.i(TAG, "stop scanning");
-                scanner.startScan(leScanCallback);
+                scanner.stopScan(leScanCallback);
             }
         }, 10000);
+        deviceListAdapter.clear();
         Log.i(TAG, "start scanning...");
         scanner.startScan(leScanCallback);
     }

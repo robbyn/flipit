@@ -27,8 +27,8 @@ public class DeviceRef {
         if (obj == null || obj.getClass() != getClass()) {
             return false;
         }
-        Object other = obj;
-        return address.equals(((DeviceRef) other).address);
+        DeviceRef other = (DeviceRef) obj;
+        return address.equals(other.address);
     }
 
     @Override

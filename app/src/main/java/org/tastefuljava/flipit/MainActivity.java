@@ -167,7 +167,6 @@ public class MainActivity extends AppCompatActivity {
 //        BluetoothGatt gatt = device.connectGatt(MainActivity.this, true, callback);
         final BluetoothLeScanner scanner = bluetoothAdapter.getBluetoothLeScanner();
         handler.postDelayed(new Runnable() {
-
             public void run() {
                 Log.i(TAG, "stop scanning");
                 scanner.stopScan(leScanCallback);

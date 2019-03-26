@@ -3,9 +3,11 @@ package org.tastefuljava.flipit;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
@@ -25,7 +27,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -37,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_ENABLE_BT = 1;
     private static final UUID TIMEFLIP_ID
             = UUID.fromString("F1196F50-71A4-11E6-BDF4-0800200C9A66");
+    private static final UUID ACCEL_CHARACTERISTIC
+            = UUID.fromString("F1196F51-71A4-11E6-BDF4-0800200C9A66");
     private static final UUID FACET_CHARACTERISTIC
             = UUID.fromString("F1196F52-71A4-11E6-BDF4-0800200C9A66");
 
@@ -55,12 +60,21 @@ public class MainActivity extends AppCompatActivity {
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {connect(view);    }
+            public void onClick(View view) {
+                connect(view);
+            }
         });
         deviceListView = findViewById(R.id.deviceListView);
         deviceListAdapter = new DeviceListAdapter(this);
         deviceListView.setAdapter(deviceListAdapter);
-        deviceListAdapter.add(new DeviceRef("TimeFlip", "00:00:00:00:00:00"));
+        deviceListView.setOnItemClickListener(new OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapter, View view, int position, long id) {
+                DeviceRef device = deviceListAdapter.getItem(position);
+                Log.i(TAG, "Item clicked: " + device);
+                connect(device);
+            }
+        });
     }
 
     @Override
@@ -91,6 +105,68 @@ public class MainActivity extends AppCompatActivity {
                     result.getDevice().getAddress()));
         }
     };
+
+    private BluetoothGattCallback gattCallback =
+            new BluetoothGattCallback() {
+                @Override
+                public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+                    if (status == BluetoothGatt.GATT_SUCCESS
+                            && newState == BluetoothProfile.STATE_CONNECTED) {
+                        Log.i(TAG, "Connected to gatt " + gatt.getDevice());
+                        Log.i(TAG, "Attempting to start service discovery:" +
+                                gatt.discoverServices());
+                    }
+                }
+
+                @Override
+                public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                        BluetoothGattService serv = gatt.getService(TIMEFLIP_ID);
+                        if (serv == null) {
+                            Log.i(TAG, "Not TimeFlip");
+                        } else {
+                            Log.i(TAG, "TimeFlip found");
+                            BluetoothGattCharacteristic charact
+                                    = serv.getCharacteristic(ACCEL_CHARACTERISTIC);
+                            for (BluetoothGattDescriptor descriptor : charact.getDescriptors()) {
+                                Log.i(TAG, "descriptor found");
+                                descriptor.setValue( BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+                                gatt.writeDescriptor(descriptor);
+                            }
+                            gatt.readCharacteristic(charact);
+                            gatt.setCharacteristicNotification(charact, true);
+                        }
+                    }
+                }
+
+                @Override
+                public void onCharacteristicRead(BluetoothGatt gatt,
+                                                 BluetoothGattCharacteristic characteristic, int status) {
+                    Log.i(TAG, "onCharacteristicRead");
+                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                        Log.i(TAG, "Facet props: " + String.format("%02X", characteristic.getProperties()));
+                        byte[] data = characteristic.getValue();
+                        Log.i(TAG, "Facet length: " + data.length);
+                    }
+                }
+                @Override
+                public synchronized void onCharacteristicChanged(BluetoothGatt gatt,
+                                                                 BluetoothGattCharacteristic characteristic) {
+                    Log.i(TAG, "onCharacteristicChanged");
+                    Log.i(TAG, "New value: " + characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
+                }
+            };
+
+    private void connect(DeviceRef deviceRef) {
+        BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceRef.getAddress());
+        if (device == null) {
+            Log.e(TAG, "Could not get remote device");
+        } else {
+            Log.i(TAG, "got remote device");
+            BluetoothGatt gatt = device.connectGatt(this, true, gattCallback);
+            Log.i(TAG, "connection requested: " + gatt);
+        }
+    }
 
     public void connect(View view) {
         Log.i(TAG, "Connect");
@@ -126,45 +202,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        BluetoothGattCallback callback =
-                new BluetoothGattCallback() {
-                    @Override
-                    public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-                        if (status == BluetoothGatt.GATT_SUCCESS
-                                && newState == BluetoothProfile.STATE_CONNECTED) {
-                            Log.i(TAG, "Connected to gatt " + gatt.getDevice());
-                            Log.i(TAG, "Attempting to start service discovery:" +
-                                    gatt.discoverServices());
-                        }
-                    }
-
-                    @Override
-                    public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-                        if (status == BluetoothGatt.GATT_SUCCESS) {
-                            BluetoothGattService serv = gatt.getService(TIMEFLIP_ID);
-                            if (serv == null) {
-                                Log.i(TAG, "Not TimeFlip");
-                            } else {
-                                Log.i(TAG, "TimeFlip found");
-                                BluetoothGattCharacteristic charact
-                                        = serv.getCharacteristic(FACET_CHARACTERISTIC);
-                                gatt.readCharacteristic(charact);
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void onCharacteristicRead(BluetoothGatt gatt,
-                                                     BluetoothGattCharacteristic characteristic, int status) {
-                        Log.i(TAG, "onCharacteristicRead");
-                        if (status == BluetoothGatt.GATT_SUCCESS) {
-                            Log.i(TAG, "Facet props: " + String.format("%02X", characteristic.getProperties()));
-                            byte[] data = characteristic.getValue();
-                            Log.i(TAG, "Facet length: " + characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
-                        }
-                    }
-                };
-//        BluetoothGatt gatt = device.connectGatt(MainActivity.this, true, callback);
         final BluetoothLeScanner scanner = bluetoothAdapter.getBluetoothLeScanner();
         handler.postDelayed(new Runnable() {
             public void run() {

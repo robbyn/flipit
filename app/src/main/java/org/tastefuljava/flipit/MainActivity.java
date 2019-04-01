@@ -32,6 +32,7 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
@@ -44,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
             = UUID.fromString("F1196F51-71A4-11E6-BDF4-0800200C9A66");
     private static final UUID FACET_CHARACTERISTIC
             = UUID.fromString("F1196F52-71A4-11E6-BDF4-0800200C9A66");
+    private static final UUID PASSWORD_CHARACTERISTIC
+            = UUID.fromString("F1196F57-71A4-11E6-BDF4-0800200C9A66");
 
     private BluetoothAdapter bluetoothAdapter;
     private Handler handler = new Handler();
@@ -126,16 +129,31 @@ public class MainActivity extends AppCompatActivity {
                             Log.i(TAG, "Not TimeFlip");
                         } else {
                             Log.i(TAG, "TimeFlip found");
-                            BluetoothGattCharacteristic charact
-                                    = serv.getCharacteristic(ACCEL_CHARACTERISTIC);
-                            for (BluetoothGattDescriptor descriptor : charact.getDescriptors()) {
-                                Log.i(TAG, "descriptor found");
-                                descriptor.setValue( BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
-                                gatt.writeDescriptor(descriptor);
+                            BluetoothGattCharacteristic characteristic
+                                    = serv.getCharacteristic(PASSWORD_CHARACTERISTIC);
+                            try {
+                                characteristic.setValue("000000".getBytes("ASCII"));
+                            } catch (UnsupportedEncodingException e) {
+                                e.printStackTrace();
                             }
-                            gatt.readCharacteristic(charact);
-                            gatt.setCharacteristicNotification(charact, true);
+                            gatt.writeCharacteristic(characteristic);
+                            Log.i(TAG, "Password write requested");
                         }
+                    }
+                }
+
+                @Override
+                public void onCharacteristicWrite(BluetoothGatt gatt,
+                                                  BluetoothGattCharacteristic characteristic,
+                                                  int status) {
+                    if (status == BluetoothGatt.GATT_SUCCESS
+                            && characteristic.getUuid().equals(PASSWORD_CHARACTERISTIC)) {
+                        Log.i(TAG, "Password written");
+                        BluetoothGattService serv = gatt.getService(TIMEFLIP_ID);
+                        BluetoothGattCharacteristic charact
+                                = serv.getCharacteristic(FACET_CHARACTERISTIC);
+                        gatt.readCharacteristic(charact);
+                        gatt.setCharacteristicNotification(charact, true);
                     }
                 }
 
@@ -147,6 +165,9 @@ public class MainActivity extends AppCompatActivity {
                         Log.i(TAG, "Facet props: " + String.format("%02X", characteristic.getProperties()));
                         byte[] data = characteristic.getValue();
                         Log.i(TAG, "Facet length: " + data.length);
+                        if (data.length == 1) {
+                            Log.i(TAG, "Facet value: " + data[0]);
+                        }
                     }
                 }
                 @Override

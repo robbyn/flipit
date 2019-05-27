@@ -33,6 +33,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
@@ -74,8 +75,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> adapter, View view, int position, long id) {
                 DeviceRef device = deviceListAdapter.getItem(position);
-                Log.i(TAG, "Item clicked: " + device);
-                connect(device);
+                if (device != null) {
+                    Log.i(TAG, "Item clicked: " + device);
+                    connect(device);
+                }
             }
         });
     }
@@ -101,11 +104,16 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
     private final ScanCallback leScanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
-            deviceListAdapter.add(new DeviceRef(result.getDevice().getName(),
-                    result.getDevice().getAddress()));
+            DeviceRef dev = new DeviceRef(result.getDevice().getName(),
+                    result.getDevice().getAddress());
+            int pos = deviceListAdapter.getPosition(dev);
+            if (pos < 0) {
+                deviceListAdapter.add(dev);
+            }
         }
     };
 
@@ -131,11 +139,7 @@ public class MainActivity extends AppCompatActivity {
                             Log.i(TAG, "TimeFlip found");
                             BluetoothGattCharacteristic characteristic
                                     = serv.getCharacteristic(PASSWORD_CHARACTERISTIC);
-                            try {
-                                characteristic.setValue("000000".getBytes("ASCII"));
-                            } catch (UnsupportedEncodingException e) {
-                                e.printStackTrace();
-                            }
+                            characteristic.setValue("000000".getBytes(StandardCharsets.US_ASCII));
                             gatt.writeCharacteristic(characteristic);
                             Log.i(TAG, "Password write requested");
                         }

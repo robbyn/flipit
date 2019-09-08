@@ -3,5 +3,6 @@
     <declare-styleable name="PentaView">
         <attr name="margin" format="integer" />
         <attr name="pentaWidth" format="integer" />
+        <attr name="textSize" format="integer" />
     </declare-styleable>
 </resources>

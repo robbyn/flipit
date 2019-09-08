@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -19,11 +20,17 @@ public class PentaView extends View {
     private static final double SIN72 = Math.sin(DEG72);
     private static final double COS72 = Math.cos(DEG72);
 
-    private int margin = 4;
-    private int strokeWidth = 3;
-    private final Paint draw;
+    private int margin;
+    private int strokeWidth;
+    private int textSize;
+    private String text = "\uf4ce";
+    private final Paint paint;
     private Path path;
-
+    private double r;
+    private int xm;
+    private int ym;
+    private final Typeface typeface;
+    private final Paint.FontMetrics fm = new Paint.FontMetrics();
 
     public PentaView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -34,15 +41,25 @@ public class PentaView extends View {
         try {
             strokeWidth = a.getInteger(R.styleable.PentaView_pentaWidth, 3);
             margin = a.getInteger(R.styleable.PentaView_margin, 4);
+            textSize = a.getInteger(R.styleable.PentaView_textSize, 120);
+
         } finally {
             a.recycle();
         }
-        draw = new Paint();
-        draw.setStyle(Paint.Style.STROKE);
-        draw.setAntiAlias(true);
-        draw.setColor(Color.BLACK);
-        draw.setStrokeWidth(strokeWidth);
-        createPath();
+        typeface = Typeface.createFromAsset(context.getAssets(), "font/fa_solid_900.ttf");
+        paint = preparePaint();
+        prepare();
+    }
+
+    private Paint preparePaint() {
+        Paint paint = new Paint();
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setAntiAlias(true);
+        paint.setColor(Color.BLACK);
+        paint.setStrokeWidth(strokeWidth);
+        paint.setTypeface(typeface);
+        paint.setTextSize(textSize);
+        return paint;
     }
 
     @Override
@@ -53,19 +70,16 @@ public class PentaView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        createPath();
+        prepare();
     }
 
-    private void createPath() {
-        int width = this.getWidth();
-        int height = this.getHeight();
-        int hi = height-2*margin;
-        int wi = width-2*margin;
-        double rh = hi/(COS36+1);
-        double rw = wi/(2*SIN72);
-        double r = Math.min(rh, rw);
-        int xm = margin+wi/2;
-        int ym = margin+(hi-(int)(r*(1+COS36)))/2;
+    private void prepare() {
+        prepareMetrics();
+        preparePentagon();
+        prepareText();
+    }
+
+    private void preparePentagon() {
         path = new Path();
         path.moveTo(xm+(int)(r*SIN36), ym);
         path.lineTo(xm+(int)(r*SIN72), ym+(int)(r*(COS36+COS72)));
@@ -75,10 +89,30 @@ public class PentaView extends View {
         path.close();
     }
 
+    private void prepareMetrics() {
+        int width = this.getWidth();
+        int height = this.getHeight();
+        int hi = height-2*margin;
+        int wi = width-2*margin;
+        double rh = hi/(COS36+1);
+        double rw = wi/(2*SIN72);
+        r = Math.min(rh, rw);
+        xm = margin+wi/2;
+        ym = margin+(hi-(int)(r*(1+COS36)))/2;
+    }
+
+    private void prepareText() {
+        paint.getFontMetrics(fm);
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        canvas.drawPath(path, draw);
+        canvas.drawPath(path, paint);
+        int x = xm-(int)(paint.measureText(text)/2);
+        int y = ym+(int)(r*COS36)
+                -(int)((-fm.ascent+fm.descent)/2)-(int)fm.ascent;
+        canvas.drawText(text, x, y, paint);
     }
 
     private static double deg2rad(double angle) {

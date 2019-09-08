@@ -31,11 +31,6 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -52,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
     private static final UUID PASSWORD_CHARACTERISTIC
             = UUID.fromString("F1196F57-71A4-11E6-BDF4-0800200C9A66");
 
-    private static final String[] FACE_NAMES = {"???","email",
+    private static final String[] FACE_NAMES = {"???", "email",
             "pause",
             "administration",
             "congé",
@@ -175,26 +170,34 @@ public class MainActivity extends AppCompatActivity {
                         BluetoothGattCharacteristic charact
                                 = serv.getCharacteristic(FACET_CHARACTERISTIC);
                         gatt.readCharacteristic(charact);
-                        gatt.setCharacteristicNotification(charact, true);
+//                        gatt.setCharacteristicNotification(charact, true);
                     }
                 }
 
                 @Override
-                public void onCharacteristicRead(BluetoothGatt gatt,
-                                                 BluetoothGattCharacteristic characteristic, int status) {
+                public void onCharacteristicRead(final BluetoothGatt gatt,
+                                                 final BluetoothGattCharacteristic characteristic,
+                                                 int status) {
                     Log.i(TAG, "onCharacteristicRead");
-                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                    if (status == BluetoothGatt.GATT_SUCCESS
+                            && characteristic.getUuid().equals(FACET_CHARACTERISTIC)) {
                         Log.i(TAG, "Facet props: " + String.format("%02X", characteristic.getProperties()));
                         byte[] data = characteristic.getValue();
                         Log.i(TAG, "Facet length: " + data.length);
                         if (data.length == 1) {
                             Log.i(TAG, "Facet value: " + data[0]);
-                            faceChanged(data[0]);
+                            facetChanged(data[0]);
                         }
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                gatt.readCharacteristic(characteristic);
+                            }
+                        }, 2000);
                     }
                 }
 
-                private void faceChanged(int face) {
+                private void facetChanged(int face) {
                     if (face >= 0 && face < FACE_NAMES.length && faceNumber != face) {
                         faceNumber = face;
                         sendFace(FACE_NAMES[face]);
@@ -202,28 +205,28 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 private void sendFace(String face) {
-                    try {
+//                    try {
                         Log.i(TAG, "Sending request");
-                        URL url = new URL("http://ocsin.brinsco.name/faces");
-                        HttpURLConnection cnt = (HttpURLConnection) url.openConnection();
-                        cnt.setDoOutput(true);
-                        cnt.setRequestProperty("Content-Type", "application/json");
-                        cnt.setRequestMethod("POST");
-                        try (Writer writer = new OutputStreamWriter(cnt.getOutputStream(),
-                                StandardCharsets.UTF_8)) {
-                            String json = "{\"username\":\"briner\",\"facename\":\"" + face + "\"}";
-                            Log.i(TAG, json);
-                            writer.write(json);
-                        }
-                        int st = cnt.getResponseCode();
-                        if (st >= 200 && st <= 299) {
-                            Log.i(TAG, "Request sent");
-                        } else {
-                            Log.e(TAG, "Request error: " + st);
-                        }
-                    } catch (IOException e) {
-                        Log.e(TAG, "sendFace", e);
-                    }
+//                        URL url = new URL("http://ocsin.brinsco.name/faces");
+//                        HttpURLConnection cnt = (HttpURLConnection) url.openConnection();
+//                        cnt.setDoOutput(true);
+//                        cnt.setRequestProperty("Content-Type", "application/json");
+//                        cnt.setRequestMethod("POST");
+//                        try (Writer writer = new OutputStreamWriter(cnt.getOutputStream(),
+//                                StandardCharsets.UTF_8)) {
+//                            String json = "{\"username\":\"briner\",\"facename\":\"" + face + "\"}";
+//                            Log.i(TAG, json);
+//                            writer.write(json);
+//                        }
+//                        int st = cnt.getResponseCode();
+//                        if (st >= 200 && st <= 299) {
+//                            Log.i(TAG, "Request sent");
+//                        } else {
+//                            Log.e(TAG, "Request error: " + st);
+//                        }
+//                    } catch (IOException e) {
+//                        Log.e(TAG, "sendFace", e);
+//                    }
                 }
 
                 @Override

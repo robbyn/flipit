@@ -39,6 +39,8 @@ public class PentaView extends View {
                 R.styleable.PentaView,
                 0, 0);
         try {
+            String s = a.getString(R.styleable.PentaView_text);
+            text = s == null ? "" : s;
             strokeWidth = a.getInteger(R.styleable.PentaView_pentaWidth, 3);
             margin = a.getInteger(R.styleable.PentaView_margin, 4);
             textSize = a.getInteger(R.styleable.PentaView_textSize, 120);
@@ -49,6 +51,15 @@ public class PentaView extends View {
         typeface = Typeface.createFromAsset(context.getAssets(), "font/fa_solid_900.ttf");
         paint = preparePaint();
         prepare();
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String newValue) {
+        text = newValue == null ? "" : newValue;
+        invalidate();
     }
 
     private Paint preparePaint() {

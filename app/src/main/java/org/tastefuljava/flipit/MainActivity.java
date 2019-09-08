@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
             "en-relation-externe"};
 
     private BluetoothAdapter bluetoothAdapter;
+    private PentaView pentaView;
     private Handler handler = new Handler();
 
     @Override
@@ -78,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
                 connect(view);
             }
         });
+        pentaView = findViewById(R.id.pentaView);
     }
 
     @Override
@@ -194,11 +196,12 @@ public class MainActivity extends AppCompatActivity {
                 private void facetChanged(int face) {
                     if (face >= 0 && face < FACE_NAMES.length && faceNumber != face) {
                         faceNumber = face;
-                        sendFace(FACE_NAMES[face]);
+                        pentaView.setText("\uf1b9");
+                        sendFacet(FACE_NAMES[face]);
                     }
                 }
 
-                private void sendFace(String face) {
+                private void sendFacet(String face) {
 //                    try {
                         Log.i(TAG, "Sending request");
 //                        URL url = new URL("http://ocsin.brinsco.name/faces");

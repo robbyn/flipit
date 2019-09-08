@@ -19,6 +19,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:pentaWidth="12"
         app:margin="24"
-        app:textSize="240"/>
+        app:text=""
+        app:textSize="240" />
 
 </android.support.constraint.ConstraintLayout>

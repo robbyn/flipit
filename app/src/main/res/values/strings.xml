@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">flipit</string>
+    <string name="app_title">Flip it!</string>
+    <string name="connect_title">Connect to device</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_connect">ConnectActivity</string>
+    <string name="ACTION_CONNECT">connect</string>
+    <string name="MAIN_TITLE">Flip it!</string>
 </resources>

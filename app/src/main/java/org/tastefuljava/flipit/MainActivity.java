@@ -13,9 +13,11 @@ import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -37,7 +39,6 @@ import java.util.UUID;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private static final int REQUEST_ENABLE_BT = 1;
     private static final UUID TIMEFLIP_ID
             = UUID.fromString("F1196F50-71A4-11E6-BDF4-0800200C9A66");
     private static final UUID ACCEL_CHARACTERISTIC
@@ -62,8 +63,6 @@ public class MainActivity extends AppCompatActivity {
 
     private BluetoothAdapter bluetoothAdapter;
     private Handler handler = new Handler();
-    private ListView deviceListView;
-    private DeviceListAdapter deviceListAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,19 +78,18 @@ public class MainActivity extends AppCompatActivity {
                 connect(view);
             }
         });
-        deviceListView = findViewById(R.id.deviceListView);
-        deviceListAdapter = new DeviceListAdapter(this);
-        deviceListView.setAdapter(deviceListAdapter);
-        deviceListView.setOnItemClickListener(new OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapter, View view, int position, long id) {
-                DeviceRef device = deviceListAdapter.getItem(position);
-                if (device != null) {
-                    Log.i(TAG, "Item clicked: " + device);
-                    connect(device);
-                }
-            }
-        });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        registerReceiver(receiver, new IntentFilter(getString(R.string.ACTION_CONNECT)));
+    }
+
+    @Override
+    protected void onStop() {
+        unregisterReceiver(receiver);
+        super.onStop();
     }
 
     @Override
@@ -116,15 +114,11 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private final ScanCallback leScanCallback = new ScanCallback() {
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            DeviceRef dev = new DeviceRef(result.getDevice().getName(),
-                    result.getDevice().getAddress());
-            int pos = deviceListAdapter.getPosition(dev);
-            if (pos < 0) {
-                deviceListAdapter.add(dev);
-            }
+        public void onReceive(Context context, Intent intent) {
+            String address = intent.getStringExtra("deviceAddress");
+            connect(address);
         }
     };
 
@@ -237,8 +231,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             };
 
-    private void connect(DeviceRef deviceRef) {
-        BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceRef.getAddress());
+    private void connect(String address) {
+        final BluetoothManager bluetoothManager =
+                (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
+        BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
         if (device == null) {
             Log.e(TAG, "Could not get remote device");
         } else {
@@ -249,48 +246,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void connect(View view) {
-        Log.i(TAG, "Connect");
-        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Toast.makeText(this, "BLE not supported", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        Log.i(TAG, "BLE is available, let's continue...");
-        // Initializes Bluetooth adapter.
-        final BluetoothManager bluetoothManager =
-                (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        bluetoothAdapter = bluetoothManager.getAdapter();
-        Log.i(TAG, "got a bluetooth adapter");
-
-        // Ensures Bluetooth is available on the device and it is enabled. If not,
-        // displays a dialog requesting user permission to enable Bluetooth.
-        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-        if (this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle("This app needs location access");
-            builder.setMessage("Please grant location access so this app can detect peripherals.");
-            builder.setPositiveButton(android.R.string.ok, null);
-            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                @Override
-                public void onDismiss(DialogInterface dialog) {
-                    requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
-                }
-            });
-            builder.show();
-            return;
-        }
-
-        final BluetoothLeScanner scanner = bluetoothAdapter.getBluetoothLeScanner();
-        handler.postDelayed(new Runnable() {
-            public void run() {
-                Log.i(TAG, "stop scanning");
-                scanner.stopScan(leScanCallback);
-            }
-        }, 10000);
-        deviceListAdapter.clear();
-        Log.i(TAG, "start scanning...");
-        scanner.startScan(leScanCallback);
+        startActivity(new Intent(MainActivity.this, ConnectActivity.class));
     }
 }

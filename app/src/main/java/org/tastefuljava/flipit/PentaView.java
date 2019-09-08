@@ -1,6 +1,7 @@
 package org.tastefuljava.flipit;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -25,6 +26,16 @@ public class PentaView extends View {
 
     public PentaView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        TypedArray a = context.getTheme().obtainStyledAttributes(
+                attrs,
+                R.styleable.PentaView,
+                0, 0);
+        try {
+            strokeWidth = a.getInteger(R.styleable.PentaView_pentaWidth, 3);
+            margin = a.getInteger(R.styleable.PentaView_margin, 4);
+        } finally {
+            a.recycle();
+        }
         draw = new Paint();
         draw.setStyle(Paint.Style.STROKE);
         draw.setAntiAlias(true);

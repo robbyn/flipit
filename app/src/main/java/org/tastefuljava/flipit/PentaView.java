@@ -22,6 +22,7 @@ public class PentaView extends View {
     private int margin = 4;
     private int strokeWidth = 3;
     private final Paint draw;
+    private Path path;
 
 
     public PentaView(Context context, AttributeSet attrs) {
@@ -41,11 +42,21 @@ public class PentaView extends View {
         draw.setAntiAlias(true);
         draw.setColor(Color.BLACK);
         draw.setStrokeWidth(strokeWidth);
+        createPath();
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        createPath();
+    }
+
+    private void createPath() {
         int width = this.getWidth();
         int height = this.getHeight();
         int hi = height-2*margin;
@@ -55,13 +66,18 @@ public class PentaView extends View {
         double r = Math.min(rh, rw);
         int xm = margin+wi/2;
         int ym = margin+(hi-(int)(r*(1+COS36)))/2;
-        Path path = new Path();
+        path = new Path();
         path.moveTo(xm+(int)(r*SIN36), ym);
         path.lineTo(xm+(int)(r*SIN72), ym+(int)(r*(COS36+COS72)));
         path.lineTo(xm, ym+(int)(r*(COS36+1)));
         path.lineTo(xm-(int)(r*SIN72), ym+(int)(r*(COS36+COS72)));
         path.lineTo(xm-(int)(r*SIN36), ym);
         path.close();
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
         canvas.drawPath(path, draw);
     }
 

@@ -14,27 +14,45 @@ import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class ServerConnection {
     private static final String BASE_URI = "https://perry.ch/flipit-server/api/";
 
     private final String username;
     private final String password;
-    private User currentUser;
+    private Future<User> currentUser;
+    private static final ExecutorService exec = Executors.newFixedThreadPool(1);
 
-    public static ServerConnection open(String username, String password) throws IOException {
+    public static ServerConnection open(String username, String password) {
         ServerConnection cnt = new ServerConnection(username,password);
         cnt.connect();
         return cnt;
     }
 
+    public User currentUser() {
+        try {
+            return currentUser.get();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new IllegalStateException(e.getMessage());
+        }
+    }
     private ServerConnection(String username, String password) {
         this.username = username;
         this.password = password;
     }
 
-    private void connect() throws IOException {
-        currentUser = fetchUser();
+    private void connect() {
+        currentUser = exec.submit(new Callable<User>() {
+            @Override
+            public User call() throws Exception {
+                return fetchUser();
+            }
+        });
     }
 
     private User fetchUser() throws IOException {
@@ -49,11 +67,15 @@ public class ServerConnection {
             JSONObject obj = new JSONObject(json);
             User user = new User();
             user.setEmail(obj.getString("email"));
-            user.setDisplayName(obj.getString("displayName"));
+            if (obj.has("displayName")) {
+                user.setDisplayName(obj.getString("displayName"));
+            }
             JSONArray facetArray = obj.getJSONArray("facets");
             for (int i = 0; i < facetArray.length(); ++i) {
                 JSONObject f = facetArray.getJSONObject(i);
-                user.addFacet(new Facet(f.getString("symbol"), f.getString("label")));
+                String symbol = f.has("symbol") ? f.getString("symbol") : null;
+                String label = f.has("label") ? f.getString("label") : null;
+                user.addFacet(new Facet(symbol, label));
             }
             return user;
         } catch (JSONException e) {
@@ -79,7 +101,7 @@ public class ServerConnection {
     private HttpURLConnection openConnection(String path) throws IOException {
         URL url = new URL(BASE_URI + path);
         HttpURLConnection cnt = (HttpURLConnection) url.openConnection();
-        cnt.setRequestProperty("Authorize", "Basic " + base64(username + ":" + password));
+        cnt.setRequestProperty("Authorization", "Basic " + base64(username + ":" + password));
         return cnt;
     }
 

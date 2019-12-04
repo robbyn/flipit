@@ -89,16 +89,18 @@ public class ConnectActivity extends AppCompatActivity {
             return;
         }
 
-        final BluetoothLeScanner scanner = bluetoothAdapter.getBluetoothLeScanner();
-        handler.postDelayed(new Runnable() {
-            public void run() {
-                Log.i(TAG, "stop scanning");
-                scanner.stopScan(leScanCallback);
-            }
-        }, 10000);
         deviceListAdapter.clear();
-        Log.i(TAG, "start scanning...");
-        scanner.startScan(leScanCallback);
+        if (bluetoothAdapter != null) {
+            final BluetoothLeScanner scanner = bluetoothAdapter.getBluetoothLeScanner();
+            handler.postDelayed(new Runnable() {
+                public void run() {
+                    Log.i(TAG, "stop scanning");
+                    scanner.stopScan(leScanCallback);
+                }
+            }, 10000);
+            Log.i(TAG, "start scanning...");
+            scanner.startScan(leScanCallback);
+        }
     }
 
     private final ScanCallback leScanCallback = new ScanCallback() {
@@ -112,5 +114,4 @@ public class ConnectActivity extends AppCompatActivity {
             }
         }
     };
-
 }

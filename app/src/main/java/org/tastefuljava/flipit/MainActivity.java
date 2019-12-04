@@ -84,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         cnt = ServerConnection.open("maurice@perry.ch", "test1234");
         registerReceiver(receiver, new IntentFilter(getString(R.string.ACTION_CONNECT)));
+        pentaView.setText("\uf45d");
     }
 
     @Override

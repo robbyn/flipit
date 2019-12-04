@@ -81,13 +81,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStart() {
-        try {
-            super.onStart();
-            cnt = ServerConnection.open("maurice@perry.ch", "test1234");
-            registerReceiver(receiver, new IntentFilter(getString(R.string.ACTION_CONNECT)));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        super.onStart();
+        cnt = ServerConnection.open("maurice@perry.ch", "test1234");
+        registerReceiver(receiver, new IntentFilter(getString(R.string.ACTION_CONNECT)));
     }
 
     @Override

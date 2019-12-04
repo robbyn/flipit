@@ -33,6 +33,11 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -202,28 +207,28 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 private void sendFacet(String face) {
-//                    try {
+                    try {
                         Log.i(TAG, "Sending request");
-//                        URL url = new URL("http://ocsin.brinsco.name/faces");
-//                        HttpURLConnection cnt = (HttpURLConnection) url.openConnection();
-//                        cnt.setDoOutput(true);
-//                        cnt.setRequestProperty("Content-Type", "application/json");
-//                        cnt.setRequestMethod("POST");
-//                        try (Writer writer = new OutputStreamWriter(cnt.getOutputStream(),
-//                                StandardCharsets.UTF_8)) {
-//                            String json = "{\"username\":\"briner\",\"facename\":\"" + face + "\"}";
-//                            Log.i(TAG, json);
-//                            writer.write(json);
-//                        }
-//                        int st = cnt.getResponseCode();
-//                        if (st >= 200 && st <= 299) {
-//                            Log.i(TAG, "Request sent");
-//                        } else {
-//                            Log.e(TAG, "Request error: " + st);
-//                        }
-//                    } catch (IOException e) {
-//                        Log.e(TAG, "sendFace", e);
-//                    }
+                        URL url = new URL("http://perry.ch/flipit-server/api/activity/log");
+                        HttpURLConnection cnt = (HttpURLConnection) url.openConnection();
+                        cnt.setDoOutput(true);
+                        cnt.setRequestProperty("Content-Type", "application/json");
+                        cnt.setRequestMethod("POST");
+                        try (Writer writer = new OutputStreamWriter(cnt.getOutputStream(),
+                                StandardCharsets.UTF_8)) {
+                            String json = "{\"username\":\"briner\",\"facename\":\"" + face + "\"}";
+                            Log.i(TAG, json);
+                            writer.write(json);
+                        }
+                        int st = cnt.getResponseCode();
+                        if (st >= 200 && st <= 299) {
+                            Log.i(TAG, "Request sent");
+                        } else {
+                            Log.e(TAG, "Request error: " + st);
+                        }
+                    } catch (IOException e) {
+                        Log.e(TAG, "sendFace", e);
+                    }
                 }
 
                 @Override

@@ -1,7 +1,5 @@
 package org.tastefuljava.flipit;
 
-import android.Manifest;
-import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -10,28 +8,21 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
-import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanResult;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
-import android.widget.ListView;
-import android.widget.Toast;
+import android.view.View;
+
+import org.tastefuljava.flipit.server.ServerConnection;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -69,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter bluetoothAdapter;
     private PentaView pentaView;
     private Handler handler = new Handler();
+    private ServerConnection cnt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,8 +81,13 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStart() {
-        super.onStart();
-        registerReceiver(receiver, new IntentFilter(getString(R.string.ACTION_CONNECT)));
+        try {
+            super.onStart();
+            cnt = ServerConnection.open("maurice@perry.ch", "test1234");
+            registerReceiver(receiver, new IntentFilter(getString(R.string.ACTION_CONNECT)));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

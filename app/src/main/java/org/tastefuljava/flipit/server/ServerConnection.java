@@ -1,12 +1,10 @@
-package org.tastefuljava.flipit;
+package org.tastefuljava.flipit.server;
 
 import android.util.Base64;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.tastefuljava.flipit.server.Facet;
-import org.tastefuljava.flipit.server.User;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,10 +12,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 public class ServerConnection {
     private static final String BASE_URI = "https://perry.ch/flipit-server/api/";
@@ -26,10 +22,15 @@ public class ServerConnection {
     private final String password;
     private User currentUser;
 
-    private ServerConnection(String username, String password) throws IOException {
+    public static ServerConnection open(String username, String password) throws IOException {
+        ServerConnection cnt = new ServerConnection(username,password);
+        cnt.connect();
+        return cnt;
+    }
+
+    private ServerConnection(String username, String password) {
         this.username = username;
         this.password = password;
-        connect();
     }
 
     private void connect() throws IOException {

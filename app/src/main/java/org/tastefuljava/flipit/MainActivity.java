@@ -22,7 +22,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import org.tastefuljava.flipit.server.Facet;
 import org.tastefuljava.flipit.server.ServerConnection;
+import org.tastefuljava.flipit.server.User;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -61,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
     private PentaView pentaView;
     private Handler handler = new Handler();
     private ServerConnection cnt;
+    private User user;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,19 +80,19 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         pentaView = findViewById(R.id.pentaView);
+        cnt = ServerConnection.open("maurice@perry.ch", "test1234");
+        user = cnt.currentUser();
+        registerReceiver(receiver, new IntentFilter(getString(R.string.ACTION_CONNECT)));
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        cnt = ServerConnection.open("maurice@perry.ch", "test1234");
-        registerReceiver(receiver, new IntentFilter(getString(R.string.ACTION_CONNECT)));
         pentaView.setText("\uf45d");
     }
 
     @Override
     protected void onStop() {
-        unregisterReceiver(receiver);
         super.onStop();
     }
 
@@ -193,10 +196,19 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 private void facetChanged(int face) {
-                    if (face >= 0 && face < FACE_NAMES.length && faceNumber != face) {
+                    face %= 12;
+                    if (faceNumber != face) {
                         faceNumber = face;
-                        pentaView.setText("\uf1b9");
-                        sendFacet(FACE_NAMES[face]);
+                        Facet facet = null;
+                        if (user != null) {
+                            facet = user.getFacet(face);
+                        }
+                        if (facet == null || facet.getSymbol() == null) {
+                            pentaView.setText("");
+                        } else {
+                            pentaView.setText(facet.getSymbol());
+                        }
+                        cnt.sendFacet(face);
                     }
                 }
 

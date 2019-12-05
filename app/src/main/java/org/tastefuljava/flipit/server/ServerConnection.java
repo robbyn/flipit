@@ -1,6 +1,7 @@
 package org.tastefuljava.flipit.server;
 
 import android.util.Base64;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -10,7 +11,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -21,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class ServerConnection {
+    private static final String TAG = ServerConnection.class.getSimpleName();
     private static final String BASE_URI = "https://perry.ch/flipit-server/api/";
 
     private final String username;
@@ -41,6 +45,40 @@ public class ServerConnection {
             throw new IllegalStateException(e.getMessage());
         }
     }
+
+    public void sendFacet(final int facetNumber) {
+        exec.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    postFacet(facetNumber);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    private void postFacet(int facetNumber) throws IOException {
+        HttpURLConnection cnt = openConnection("activity/log");
+        cnt.setRequestMethod("POST");
+        cnt.setDoOutput(true);
+        cnt.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+        cnt.setRequestMethod("POST");
+        try (Writer writer = new OutputStreamWriter(cnt.getOutputStream(),
+                StandardCharsets.UTF_8)) {
+            String parms = "facet=" + facetNumber;
+            Log.i(TAG, parms);
+            writer.write(parms);
+        }
+        int st = cnt.getResponseCode();
+        if (st >= 200 && st <= 299) {
+            Log.i(TAG, "Request sent");
+        } else {
+            Log.e(TAG, "Request error: " + st);
+        }
+    }
+
     private ServerConnection(String username, String password) {
         this.username = username;
         this.password = password;

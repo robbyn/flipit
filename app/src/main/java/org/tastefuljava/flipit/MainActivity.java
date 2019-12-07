@@ -46,19 +46,6 @@ public class MainActivity extends AppCompatActivity {
     private static final UUID PASSWORD_CHARACTERISTIC
             = UUID.fromString("F1196F57-71A4-11E6-BDF4-0800200C9A66");
 
-    private static final String[] FACE_NAMES = {"???", "email",
-            "pause",
-            "administration",
-            "congé",
-            "hors-horaire",
-            "appel",
-            "documentation",
-            "3202-soca",
-            "sysadmin",
-            "réunion",
-            "2983-conteneurisation",
-            "en-relation-externe"};
-
     private BluetoothAdapter bluetoothAdapter;
     private PentaView pentaView;
     private Handler handler = new Handler();

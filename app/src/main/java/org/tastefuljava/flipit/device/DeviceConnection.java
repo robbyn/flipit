@@ -31,6 +31,10 @@ public class DeviceConnection {
             = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
     private static final UUID PASSWORD_CHARACTERISTIC
             = UUID.fromString("F1196F57-71A4-11E6-BDF4-0800200C9A66");
+    private static final UUID COMMAND_CHARACTERISTIC
+            = UUID.fromString("F1196F54-71A4-11E6-BDF4-0800200C9A66");
+
+    private static final int[] FACET_NUMBERS = {8,5,18,1,19,20,17,15,14,21,13,16};
 
     private final Context context;
     private final Callback callback;
@@ -101,15 +105,26 @@ public class DeviceConnection {
         public void onCharacteristicWrite(BluetoothGatt gatt,
                                           BluetoothGattCharacteristic characteristic,
                                           int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS
-                    && characteristic.getUuid().equals(PASSWORD_CHARACTERISTIC)) {
-                Log.i(TAG, "Password written");
-                BluetoothGattService serv = gatt.getService(TIMEFLIP_ID);
-                BluetoothGattCharacteristic charact
-                        = serv.getCharacteristic(FACET_CHARACTERISTIC);
-                setCharacteristicNotification(gatt, charact, true);
-                charact = serv.getCharacteristic(FACET_CHARACTERISTIC);
-                gatt.readCharacteristic(charact);
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                if (characteristic.getUuid().equals(PASSWORD_CHARACTERISTIC)) {
+                    Log.i(TAG, "Password written");
+                    BluetoothGattService serv = gatt.getService(TIMEFLIP_ID);
+                    BluetoothGattCharacteristic charact
+                            = serv.getCharacteristic(COMMAND_CHARACTERISTIC);
+                    charact.setValue(new byte[] {0x03});
+                    gatt.writeCharacteristic(charact);
+                    Log.i(TAG, "Calibration reset");
+                } else if (characteristic.getUuid().equals(COMMAND_CHARACTERISTIC)) {
+                    Log.i(TAG, "Calibration reset done");
+                    BluetoothGattService serv = gatt.getService(TIMEFLIP_ID);
+                    BluetoothGattCharacteristic charact
+                            = serv.getCharacteristic(FACET_CHARACTERISTIC);
+                    setCharacteristicNotification(gatt, charact, true);
+                    charact = serv.getCharacteristic(FACET_CHARACTERISTIC);
+                    gatt.readCharacteristic(charact);
+                }
+            } else {
+                Log.e(TAG, "Characteristic write failed " + characteristic.getUuid());
             }
         }
 
@@ -139,11 +154,20 @@ public class DeviceConnection {
         }
 
         private void facetChanged(int face) {
-            face %= 12;
+            face = facetIndex(face);
             if (faceNumber != face) {
                 faceNumber = face;
                 callback.facedChanged(face);
             }
+        }
+
+        private int facetIndex(int face) {
+            for (int i = 0; i < FACET_NUMBERS.length; ++i) {
+                if (FACET_NUMBERS[i] == face) {
+                    return i;
+                }
+            }
+            return face%FACET_NUMBERS.length;
         }
 
         @Override

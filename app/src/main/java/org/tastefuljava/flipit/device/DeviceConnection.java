@@ -40,7 +40,7 @@ public class DeviceConnection {
     private final Callback callback;
 
     public interface Callback {
-        void facedChanged(int newFacet);
+        void facetChanged(int newFacet);
     }
 
     public static DeviceConnection open(Context context, String address, Callback callback)
@@ -157,7 +157,7 @@ public class DeviceConnection {
             face = facetIndex(face);
             if (faceNumber != face) {
                 faceNumber = face;
-                callback.facedChanged(face);
+                callback.facetChanged(face);
             }
         }
 

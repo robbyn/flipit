@@ -107,25 +107,35 @@ public class DeviceConnection {
                 BluetoothGattService serv = gatt.getService(TIMEFLIP_ID);
                 BluetoothGattCharacteristic charact
                         = serv.getCharacteristic(FACET_CHARACTERISTIC);
-                for (BluetoothGattDescriptor desc: charact.getDescriptors()) {
-                    System.out.println(desc.getUuid());
-                }
                 setCharacteristicNotification(gatt, charact, true);
-//                gatt.setCharacteristicNotification(charact, true);
+                charact = serv.getCharacteristic(FACET_CHARACTERISTIC);
                 gatt.readCharacteristic(charact);
-//                        gatt.setCharacteristicNotification(charact, true);
             }
         }
 
-        private boolean setCharacteristicNotification(BluetoothGatt bluetoothGatt, BluetoothGattCharacteristic characteristic,boolean enable) {
+        private boolean setCharacteristicNotification(
+                BluetoothGatt bluetoothGatt, BluetoothGattCharacteristic charact, boolean enable) {
             Log.d(TAG, "setCharacteristicNotification");
-            bluetoothGatt.setCharacteristicNotification(characteristic, enable);
-            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(FACET_DESCRIPTOR);
+            bluetoothGatt.setCharacteristicNotification(charact, enable);
+            BluetoothGattDescriptor descriptor = charact.getDescriptor(FACET_DESCRIPTOR);
             descriptor.setValue(enable
                     ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                     : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
             return bluetoothGatt.writeDescriptor(descriptor); //descriptor write operation successfully started?
+        }
 
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic charact,
+                                         int status) {
+            Log.i(TAG, "onCharacteristicRead");
+            if (status == BluetoothGatt.GATT_SUCCESS
+                    && charact.getUuid().equals(FACET_CHARACTERISTIC)) {
+                Integer facet = charact.getIntValue(FORMAT_UINT8, 0);
+                Log.i(TAG, "New value: " + facet);
+                if (facet != null) {
+                    facetChanged(facet);
+                }
+            }
         }
 
         private void facetChanged(int face) {
@@ -138,12 +148,14 @@ public class DeviceConnection {
 
         @Override
         public synchronized void onCharacteristicChanged(BluetoothGatt gatt,
-                                                         BluetoothGattCharacteristic characteristic) {
+                                                         BluetoothGattCharacteristic charact) {
             Log.i(TAG, "onCharacteristicChanged");
-            Integer facet = characteristic.getIntValue(FORMAT_UINT8, 0);
-            Log.i(TAG, "New value: " + facet);
-            if (facet != null) {
-                facetChanged(facet);
+            if (charact.getUuid().equals(FACET_CHARACTERISTIC)) {
+                Integer facet = charact.getIntValue(FORMAT_UINT8, 0);
+                Log.i(TAG, "New value: " + facet);
+                if (facet != null) {
+                    facetChanged(facet);
+                }
             }
         }
     };

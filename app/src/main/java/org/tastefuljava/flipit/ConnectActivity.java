@@ -8,15 +8,12 @@ import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -35,13 +32,10 @@ public class ConnectActivity extends AppCompatActivity {
         deviceListView = findViewById(R.id.deviceListView);
         deviceListAdapter = new DeviceListAdapter(this);
         deviceListView.setAdapter(deviceListAdapter);
-        deviceListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapter, View view, int position, long id) {
-                DeviceRef device = deviceListAdapter.getItem(position);
-                if (device != null) {
-                    deviceClicked(device);
-                }
+        deviceListView.setOnItemClickListener((adapter, view, position, id) -> {
+            DeviceRef device = deviceListAdapter.getItem(position);
+            if (device != null) {
+                deviceClicked(device);
             }
         });
         startScan();
@@ -73,34 +67,27 @@ public class ConnectActivity extends AppCompatActivity {
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            return;
         }
         if (this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("This app needs location access");
             builder.setMessage("Please grant location access so this app can detect peripherals.");
             builder.setPositiveButton(android.R.string.ok, null);
-            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                @Override
-                public void onDismiss(DialogInterface dialog) {
-                    requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
-                }
-            });
+            builder.setOnDismissListener(
+                    (dialog) -> requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1));
             builder.show();
             return;
         }
 
         deviceListAdapter.clear();
-        if (bluetoothAdapter != null) {
-            final BluetoothLeScanner scanner = bluetoothAdapter.getBluetoothLeScanner();
-            handler.postDelayed(new Runnable() {
-                public void run() {
-                    Log.i(TAG, "stop scanning");
-                    scanner.stopScan(leScanCallback);
-                }
-            }, 10000);
-            Log.i(TAG, "start scanning...");
-            scanner.startScan(leScanCallback);
-        }
+        final BluetoothLeScanner scanner = bluetoothAdapter.getBluetoothLeScanner();
+        handler.postDelayed(() -> {
+            Log.i(TAG, "stop scanning");
+            scanner.stopScan(leScanCallback);
+        }, 10000);
+        Log.i(TAG, "start scanning...");
+        scanner.startScan(leScanCallback);
     }
 
     private final ScanCallback leScanCallback = new ScanCallback() {

@@ -1,25 +1,23 @@
-package org.tastefuljava.flipit.server;
-
-import java.util.Date;
+package org.tastefuljava.flipit.domain;
 
 public class Activity {
-    private int facetNumber;
-    private Date startTime;
+    private Integer facetNumber;
+    private String startTime;
     private String comment;
 
-    public int getFacetNumber() {
+    public Integer getFacetNumber() {
         return facetNumber;
     }
 
-    public void setFacetNumber(int facetNumber) {
+    public void setFacetNumber(Integer facetNumber) {
         this.facetNumber = facetNumber;
     }
 
-    public Date getStartTime() {
+    public String getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(Date startTime) {
+    public void setStartTime(String startTime) {
         this.startTime = startTime;
     }
 

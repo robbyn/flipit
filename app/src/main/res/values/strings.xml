@@ -6,4 +6,5 @@
     <string name="title_activity_connect">ConnectActivity</string>
     <string name="ACTION_CONNECT">connect</string>
     <string name="MAIN_TITLE">Flip it!</string>
+    <string name="current_user">current_user</string>
 </resources>

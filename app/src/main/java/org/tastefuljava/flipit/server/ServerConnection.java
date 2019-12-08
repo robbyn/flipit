@@ -1,11 +1,9 @@
 package org.tastefuljava.flipit.server;
 
+import android.content.Context;
+import android.content.Intent;
 import android.util.Base64;
 import android.util.Log;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,44 +15,46 @@ import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 public class ServerConnection {
     private static final String TAG = ServerConnection.class.getSimpleName();
     private static final String BASE_URI = "https://perry.ch/flipit-server/api/";
 
+    private final Context context;
     private final String username;
     private final String password;
-    private Future<User> currentUser;
     private static final ExecutorService exec = Executors.newFixedThreadPool(1);
 
-    public static ServerConnection open(String username, String password) {
-        ServerConnection cnt = new ServerConnection(username,password);
+    public static ServerConnection open(Context context, String username, String password) {
+        ServerConnection cnt = new ServerConnection(context, username,password);
         cnt.connect();
         return cnt;
     }
 
-    public User currentUser() {
-        try {
-            return currentUser.get();
-        } catch (ExecutionException | InterruptedException e) {
-            throw new IllegalStateException(e.getMessage());
-        }
+    private ServerConnection(Context context, String username, String password) {
+        this.context = context;
+        this.username = username;
+        this.password = password;
+    }
+
+    public void getLastActivity() {
+        exec.submit(() -> {
+            try {
+                fetchLastActivity();
+            } catch (IOException e) {
+                Log.e(TAG, e.getMessage(), e);
+            }
+        });
     }
 
     public void sendFacet(final int facetNumber) {
-        exec.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    postFacet(facetNumber);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+        exec.submit(() -> {
+            try {
+                postFacet(facetNumber);
+            } catch (IOException e) {
+                Log.e(TAG, e.getMessage(), e);
             }
         });
     }
@@ -79,21 +79,24 @@ public class ServerConnection {
         }
     }
 
-    private ServerConnection(String username, String password) {
-        this.username = username;
-        this.password = password;
-    }
-
     private void connect() {
-        currentUser = exec.submit(new Callable<User>() {
-            @Override
-            public User call() throws Exception {
-                return fetchUser();
+        exec.submit(() -> {
+            try {
+                fetchUser();
+            } catch (IOException e) {
+                Log.e(TAG, e.getMessage(), e);
             }
         });
     }
 
-    private User fetchUser() throws IOException {
+    private void publishCurrentUser(String user) {
+        Log.i(TAG, "Current user: " + user);
+        Intent intent = new Intent("current_user");
+        intent.putExtra("user", user);
+        context.sendBroadcast(intent);
+    }
+
+    private void fetchUser() throws IOException {
         HttpURLConnection cnt = openConnection("user");
         cnt.setRequestMethod("GET");
         int st = cnt.getResponseCode();
@@ -101,24 +104,25 @@ public class ServerConnection {
             throw new IOException("Error " + st + " returned by the server");
         }
         String json = readResponse(cnt);
-        try {
-            JSONObject obj = new JSONObject(json);
-            User user = new User();
-            user.setEmail(obj.getString("email"));
-            if (obj.has("displayName")) {
-                user.setDisplayName(obj.getString("displayName"));
-            }
-            JSONArray facetArray = obj.getJSONArray("facets");
-            for (int i = 0; i < facetArray.length(); ++i) {
-                JSONObject f = facetArray.getJSONObject(i);
-                String symbol = f.has("symbol") ? f.getString("symbol") : null;
-                String label = f.has("label") ? f.getString("label") : null;
-                user.addFacet(new Facet(symbol, label));
-            }
-            return user;
-        } catch (JSONException e) {
-            throw new IOException(e.getMessage());
+        publishCurrentUser(json);
+    }
+
+    private void fetchLastActivity() throws IOException {
+        HttpURLConnection cnt = openConnection("activity/last");
+        cnt.setRequestMethod("GET");
+        int st = cnt.getResponseCode();
+        if (st != 200) {
+            throw new IOException("Error " + st + " returned by the server");
         }
+        String json = readResponse(cnt);
+        publishLastActivity(json);
+    }
+
+    private void publishLastActivity(String json) {
+        Log.i(TAG, "Activity: " + json);
+        Intent intent = new Intent("last_activity");
+        intent.putExtra("activity", json);
+        context.sendBroadcast(intent);
     }
 
     private String readResponse(HttpURLConnection cnt) throws IOException {

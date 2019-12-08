@@ -14,12 +14,16 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import org.json.JSONException;
 import org.tastefuljava.flipit.device.DeviceConnection;
-import org.tastefuljava.flipit.server.Facet;
+import org.tastefuljava.flipit.domain.Activity;
+import org.tastefuljava.flipit.domain.Facet;
+import org.tastefuljava.flipit.domain.User;
 import org.tastefuljava.flipit.server.ServerConnection;
-import org.tastefuljava.flipit.server.User;
+import org.tastefuljava.flipit.util.JSon;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
@@ -50,16 +54,19 @@ public class MainActivity extends AppCompatActivity {
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(this::connect);
         pentaView = findViewById(R.id.pentaView);
-        cnt = ServerConnection.open("maurice@perry.ch", "test1234");
-        user = cnt.currentUser();
-        registerReceiver(receiver, new IntentFilter(getString(R.string.ACTION_CONNECT)));
+        pentaView.setText("");
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("connect");
+        filter.addAction("current_user");
+        filter.addAction("last_activity");
+        registerReceiver(receiver, filter);
+        cnt = ServerConnection.open(this, "maurice@perry.ch", "test1234");
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        pentaView.setText("");
-    }
+     }
 
     @Override
     protected void onStop() {
@@ -91,11 +98,37 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String address = intent.getStringExtra("deviceAddress");
-            try {
-                connect(address);
-            } catch (IOException e) {
-                showError("Error", e.getMessage());
+            switch (Objects.requireNonNull(intent.getAction())) {
+                case "connect": {
+                    String address = intent.getStringExtra("deviceAddress");
+                    try {
+                        connect(address);
+                    } catch (IOException e) {
+                        showError("Error", e.getMessage());
+                    }
+                }
+                break;
+                case "current_user": {
+                    String json = intent.getStringExtra("user");
+                    try {
+                        user = JSon.parseUser(json);
+                        cnt.getLastActivity();
+                    } catch (JSONException e) {
+                        showError("Error", e.getMessage());
+                    }
+                }
+                break;
+                case "last_activity": {
+                    String json = intent.getStringExtra("activity");
+                    try {
+                        Activity activity = JSon.parseActivity(json);
+                        Integer facetNumber = activity.getFacetNumber();
+                        facetChanged(facetNumber == null ? -1 : facetNumber);
+                    } catch (JSONException e) {
+                        showError("Error", e.getMessage());
+                    }
+                }
+                break;
             }
         }
     };
@@ -110,18 +143,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void connect(String address) throws IOException {
-        device = DeviceConnection.open(this, address, (face) -> {
-            Facet facet = null;
-            if (user != null) {
-                facet = user.getFacet(face);
-            }
-            if (facet == null || facet.getSymbol() == null) {
-                pentaView.setText("");
-            } else {
-                pentaView.setText(facet.getSymbol());
-            }
-            cnt.sendFacet(face);
+        device = DeviceConnection.open(this, address, (facetNumber) -> {
+            facetChanged(facetNumber);
+            cnt.sendFacet(facetNumber);
         });
+    }
+
+    private void facetChanged(int facetNumber) {
+        Facet facet = null;
+        if (user != null) {
+            facet = user.getFacet(facetNumber);
+        }
+        if (facet == null || facet.getSymbol() == null) {
+            pentaView.setText("");
+        } else {
+            pentaView.setText(facet.getSymbol());
+        }
     }
 
     public void connect(View view) {

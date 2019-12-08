@@ -34,6 +34,7 @@ public class DeviceConnection {
     private static final UUID COMMAND_CHARACTERISTIC
             = UUID.fromString("F1196F54-71A4-11E6-BDF4-0800200C9A66");
 
+    // Facet numbers when the device is reset
     private static final int[] FACET_NUMBERS = {8,5,18,1,19,20,17,15,14,21,13,16};
 
     private final Context context;

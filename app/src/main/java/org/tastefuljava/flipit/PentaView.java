@@ -23,8 +23,9 @@ public class PentaView extends View {
     private int margin;
     private int strokeWidth;
     private int textSize;
-    private String text = "\uf4ce";
+    private String text;
     private final Paint paint;
+    private final Paint textPaint;
     private Path path;
     private double r;
     private int xm;
@@ -49,7 +50,8 @@ public class PentaView extends View {
             a.recycle();
         }
         typeface = Typeface.createFromAsset(context.getAssets(), "font/fa_solid_900.ttf");
-        paint = preparePaint();
+        paint = preparePentaPaint();
+        textPaint = prepareTextPaint();
         prepare();
     }
 
@@ -62,12 +64,20 @@ public class PentaView extends View {
         invalidate();
     }
 
-    private Paint preparePaint() {
+    private Paint preparePentaPaint() {
         Paint paint = new Paint();
         paint.setStyle(Paint.Style.STROKE);
         paint.setAntiAlias(true);
         paint.setColor(Color.BLACK);
         paint.setStrokeWidth(strokeWidth);
+        return paint;
+    }
+
+    private Paint prepareTextPaint() {
+        Paint paint = new Paint();
+        paint.setStyle(Paint.Style.FILL);
+        paint.setAntiAlias(true);
+        paint.setColor(Color.BLACK);
         paint.setTypeface(typeface);
         paint.setTextSize(textSize);
         return paint;
@@ -113,17 +123,17 @@ public class PentaView extends View {
     }
 
     private void prepareText() {
-        paint.getFontMetrics(fm);
+        textPaint.getFontMetrics(fm);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         canvas.drawPath(path, paint);
-        int x = xm-(int)(paint.measureText(text)/2);
+        int x = xm-(int)(textPaint.measureText(text)/2);
         int y = ym+(int)(r*COS36)
                 -(int)((-fm.ascent+fm.descent)/2)-(int)fm.ascent;
-        canvas.drawText(text, x, y, paint);
+        canvas.drawText(text, x, y, textPaint);
     }
 
     private static double deg2rad(double angle) {

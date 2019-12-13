@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction("current_user");
         filter.addAction("last_activity");
         registerReceiver(receiver, filter);
-        cnt = ServerConnection.open(this, "maurice@perry.ch", "test1234");
+        cnt = ServerConnection.open(this, "maurice@perry.ch", "changeit");
     }
 
     @Override
